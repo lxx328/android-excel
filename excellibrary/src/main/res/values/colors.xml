@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+
+    <!-- 主题色 -->
+    <color name="colorPrimary">#007AFF</color>
+    <color name="colorPrimaryDark">#0051D5</color>
+    <color name="colorAccent">#007AFF</color>
+
+    <!-- 背景色 -->
+    <color name="background_light">#F8F9FA</color>
+    <color name="background_white">#FFFFFF</color>
+    <color name="white">#FFFFFF</color>
+
+    <!-- 文字颜色 -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#BDBDBD</color>
+
+
+    <!-- 浅色系列（用于单元格背景） -->
+    <color name="light_red">#FFEBEE</color>
+    <color name="light_pink">#FCE4EC</color>
+    <color name="light_purple">#F3E5F5</color>
+    <color name="light_blue">#E3F2FD</color>
+    <color name="light_green">#E8F5E9</color>
+    <color name="light_yellow">#FFF9C4</color>
+    <color name="light_orange">#FFF3E0</color>
+
+    <!-- 表格相关颜色 -->
+    <color name="grid_line">#E0E0E0</color>
+    <color name="cell_selected">#007AFF</color>
+    <color name="cell_disabled">#F5F5F5</color>
+    <color name="cell_hover">#E3F2FD</color>
+
+    <!-- 其他UI元素颜色 -->
+    <color name="divider">#E0E0E0</color>
+    <color name="shadow">#1A000000</color>
+    <color name="transparent">#00000000</color>
+    <color name="black_overlay">#66000000</color>
+</resources>

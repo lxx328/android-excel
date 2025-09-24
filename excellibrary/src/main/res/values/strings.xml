@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Excel Editor</string>
+
+    <!-- Excel Editor -->
+    <string name="excel_editor_title">Excel Editor</string>
+    <string name="tap_cell_to_edit">Tap any cell to edit</string>
+    <string name="cell_content_hint">Cell content</string>
+    <string name="select_preset">Select preset…</string>
+
+    <!-- Menu Actions -->
+    <string name="action_save">Save</string>
+    <string name="action_export">Export</string>
+    <string name="action_share">Share</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_zoom_in">Zoom in</string>
+    <string name="cd_zoom_out">Zoom out</string>
+    <string name="cd_more_options">More options</string>
+    <string name="cd_color_picker">Pick color</string>
+
+    <!-- Error Messages -->
+    <string name="error_loading_excel">Failed to load Excel data</string>
+    <string name="error_updating_cell">Failed to update cell</string>
+    <string name="error_network">Network error occurred</string>
+</resources>
