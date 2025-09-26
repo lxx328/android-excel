@@ -3,6 +3,7 @@ package com.xctech.excellibrary.view
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.TextWatcher
@@ -19,14 +20,27 @@ import com.xctech.excellibrary.databinding.DialogCellEditorBinding
 
 class CellEditorDialog private constructor(
     context: Context,
-    private val backgroundColors: List<Pair<String, String>>,
-    private val presetSymbols: List<String>
+    private var backgroundColors: List<Pair<String, String>>,
+    private var presetSymbols: List<String>
 ) : Dialog(context, R.style.BottomSheetDialogTheme) {
 
     private val binding: DialogCellEditorBinding = DialogCellEditorBinding.inflate(layoutInflater)
     private var onContentChangeListener: ((String) -> Unit)? = null
     private var onColorSelectedListener: ((String) -> Unit)? = null
     private var onSymbolSelectedListener: ((String) -> Unit)? = null
+    private var currentSelectedColor: String = ""
+
+    init {
+
+    }
+
+    /**
+     * 设置根布局的背景Drawable
+     */
+    fun setRootBackgroundDrawable(drawable: Drawable?): CellEditorDialog {
+        binding.root.background = drawable
+        return this
+    }
 
     // Builder模式构造器
     class Builder(private val context: Context) {
@@ -93,12 +107,13 @@ class CellEditorDialog private constructor(
 
         // 设置编辑框监听
         setupEditTextListener()
+
     }
 
     private fun setupColorPalette() {
         binding.colorPalette.removeAllViews()
 
-        backgroundColors.forEach { (colorString, colorName) ->
+        backgroundColors.forEachIndexed { index, (colorString, colorName) ->
             val container = FrameLayout(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     context.resources.getDimensionPixelSize(R.dimen.color_circle_size),
@@ -129,6 +144,7 @@ class CellEditorDialog private constructor(
 
             // 点击事件
             container.setOnClickListener {
+                currentSelectedColor = colorString
                 onColorSelectedListener?.invoke(colorString)
                 updateColorSelection(container, binding.colorPalette)
             }
@@ -164,6 +180,22 @@ class CellEditorDialog private constructor(
             // 为选中项添加边框
             if (selectedView is FrameLayout) {
                 selectedView.foreground = ContextCompat.getDrawable(context, R.drawable.color_item_selected_border)
+            }
+        }
+    }
+
+    // 根据当前选中的颜色更新颜色选择器的选中状态
+    fun updateColorSelectionForCurrentColor() {
+        binding.colorPalette.let { palette ->
+            for (i in 0 until backgroundColors.size) {
+                val (colorString, _) = backgroundColors[i]
+                if (colorString == currentSelectedColor) {
+                    val colorView = palette.getChildAt(i)
+                    if (colorView is View) {
+                        updateColorSelection(colorView, palette)
+                        break
+                    }
+                }
             }
         }
     }
@@ -250,19 +282,87 @@ class CellEditorDialog private constructor(
         return binding.etCellContent.text?.toString() ?: ""
     }
 
+    // 设置当前选中的颜色
+    fun setCurrentSelectedColor(color: String) {
+        this.currentSelectedColor = color
+        // 更新UI选中状态
+        updateColorSelectionForCurrentColor()
+    }
+
     // 动态更新颜色列表
     fun updateBackgroundColorList(colors: List<Pair<String, String>>) {
-        backgroundColors.forEach { (colorString, colorName) ->
-            // 这里可以添加更新逻辑，但为了简化，我们重新设置整个颜色面板
-        }
+        // 更新颜色列表
+        this.backgroundColors = colors.toList()
+
+//        // 检查当前选中的颜色是否在新列表中
+//        if (currentSelectedColor.isNotEmpty()) {
+//            val colorExists = colors.any { it.first == currentSelectedColor }
+//            if (!colorExists) {
+//                // 如果当前选中的颜色不在新列表中，清空选中状态或选择第一个颜色
+//                currentSelectedColor = colors.firstOrNull()?.first ?: ""
+//                onColorSelectedListener?.invoke(currentSelectedColor)
+//            }
+//        } else {
+//            // 如果没有当前选中颜色，选择第一个颜色
+//            currentSelectedColor = colors.firstOrNull()?.first ?: ""
+//        }
+
+        // 重新设置颜色选择器
         setupColorPalette()
     }
 
     // 动态更新符号列表
     fun updatePresetSymbols(symbols: List<String>) {
-        presetSymbols.forEach { symbol ->
-            // 这里可以添加更新逻辑，但为了简化，我们重新设置整个符号面板
-        }
+        // 更新符号列表
+        this.presetSymbols = symbols.toList()
+
+        // 重新设置预设符号内容
         setupPresetContent()
+    }
+
+    // 添加单个颜色
+    fun addBackgroundColor(colorString: String, colorName: String) {
+        val newColors = backgroundColors.toMutableList()
+        newColors.add(colorString to colorName)
+        updateBackgroundColorList(newColors)
+    }
+
+    // 添加单个符号
+    fun addPresetSymbol(symbol: String) {
+        val newSymbols = presetSymbols.toMutableList()
+        newSymbols.add(symbol)
+        updatePresetSymbols(newSymbols)
+    }
+
+    // 移除指定颜色
+    fun removeBackgroundColor(colorString: String) {
+        val newColors = backgroundColors.filterNot { it.first == colorString }
+        updateBackgroundColorList(newColors)
+    }
+
+    // 移除指定符号
+    fun removePresetSymbol(symbol: String) {
+        val newSymbols = presetSymbols.filterNot { it == symbol }
+        updatePresetSymbols(newSymbols)
+    }
+
+    // 获取当前颜色列表
+    fun getBackgroundColors(): List<Pair<String, String>> {
+        return backgroundColors.toList()
+    }
+
+    // 获取当前符号列表
+    fun getPresetSymbols(): List<String> {
+        return presetSymbols.toList()
+    }
+
+    // 清空所有颜色
+    fun clearBackgroundColors() {
+        updateBackgroundColorList(emptyList())
+    }
+
+    // 清空所有符号
+    fun clearPresetSymbols() {
+        updatePresetSymbols(emptyList())
     }
 }

@@ -7,6 +7,8 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
+import com.xctech.excellibrary.CellDiff
+import com.xctech.excellibrary.Excel2DDiffUtil
 import com.xctech.excellibrary.data.ExcelCell
 import com.xctech.excellibrary.data.ExcelInfo
 
@@ -23,6 +25,12 @@ class ExcelTableView @JvmOverloads constructor(
     interface OnCellClickListener {
         fun onCellClick(row: Int, col: Int)
     }
+
+    // 添加差异计算器
+    private val diffUtil = Excel2DDiffUtil()
+
+    // 保存旧数据用于比较
+    private var oldTableData: List<List<ExcelCell>>? = null
 
     // 配置类
     data class Config(
@@ -98,16 +106,16 @@ class ExcelTableView @JvmOverloads constructor(
     private val gestureDetector = GestureDetector(context, GestureListener())
 
     // 单元格类型颜色
-    private val cellTypeColors = mapOf(
-        1 to Color.WHITE,           // 文本
-        2 to Color.parseColor("#E3F2FD"), // 平均值
-        3 to Color.parseColor("#F3E5F5"), // 选项
-        4 to Color.parseColor("#E8F5E9"), // 范围
-        5 to Color.parseColor("#FFF3E0"), // 图片
-        6 to Color.parseColor("#E1F5FE"), // 签名
-        7 to Color.parseColor("#F5F5F5"), // 置灰
-        8 to Color.parseColor("#FFFDE7")  // 搜索项
-    )
+//    private val cellTypeColors = mapOf(
+//        1 to Color.WHITE,           // 文本
+//        2 to Color.parseColor("#E3F2FD"), // 平均值
+//        3 to Color.parseColor("#F3E5F5"), // 选项
+//        4 to Color.parseColor("#E8F5E9"), // 范围
+//        5 to Color.parseColor("#FFF3E0"), // 图片
+//        6 to Color.parseColor("#E1F5FE"), // 签名
+//        7 to Color.parseColor("#F5F5F5"), // 置灰
+//        8 to Color.parseColor("#FFFDE7")  // 搜索项
+//    )
 
     // 应用配置
     fun applyConfig(config: Config) {
@@ -120,11 +128,16 @@ class ExcelTableView @JvmOverloads constructor(
     }
 
     fun setExcelInfo(info: ExcelInfo) {
+        clearEditedCells()
+
         this.excelInfo = info
         offsetX = 0f
         offsetY = 0f
         invalidate()
     }
+
+
+
 
     fun setScaleFactor(scale: Float) {
         scaleFactor = scale.coerceIn(0.5f, 3f)
@@ -180,13 +193,13 @@ class ExcelTableView @JvmOverloads constructor(
                 backgroundColor = Color.parseColor(cell.bgc)
             } catch (e: IllegalArgumentException) {
                 // 如果解析颜色失败，使用默认颜色
-                backgroundColor = cellTypeColors[cell.cellType]
+                backgroundColor = Color.WHITE
             }
         }
 
         // 如果还没有背景色，使用单元格类型颜色
         if (backgroundColor == null) {
-            backgroundColor = cellTypeColors[cell.cellType] ?: Color.WHITE
+            backgroundColor =  Color.WHITE
         }
 
         cellPaint.color = backgroundColor
@@ -203,15 +216,168 @@ class ExcelTableView @JvmOverloads constructor(
         }
 
         // 绘制内容
-        when (cell.cellType) {
-            1, 2, 3, 4, 8 -> drawTextCell(canvas, cellRect, cell)
-            5 -> drawImageCell(canvas, cellRect, cell)
-            6 -> drawSignatureCell(canvas, cellRect, cell)
-            7 -> drawDisabledCell(canvas, cellRect)
+        drawTextCell(canvas, cellRect, cell)
+//        when (cell.cellType) {
+//            1, 2, 3, 4, 8 -> drawTextCell(canvas, cellRect, cell)
+//            5 -> drawImageCell(canvas, cellRect, cell)
+//            6 -> drawSignatureCell(canvas, cellRect, cell)
+//            7 -> drawDisabledCell(canvas, cellRect)
+//        }
+    }
+
+    // 智能更新方法
+    fun updateExcelInfo(newInfo: ExcelInfo, preserveState: Boolean = true) {
+        //清空编辑状态
+        clearEditedCells()
+
+        val oldInfo = this.excelInfo
+
+        if (oldInfo == null) {
+            // 首次设置数据
+            setExcelInfo(newInfo)
+            return
+        }
+
+        // 计算差异
+        val diffResult = diffUtil.calculateDiff(
+            oldInfo.tableData,
+            newInfo.tableData
+        )
+
+        // 更新数据
+        this.excelInfo = newInfo
+
+        // 保留用户状态
+        if (preserveState) {
+            // 保留滚动位置
+            constrainOffsets()
+
+            // 迁移编辑状态
+            migrateStatesWithDiff(diffResult)
+
+            // 验证选中状态
+            validateSelection(newInfo)
+        } else {
+            resetAllStates()
+        }
+
+
+        // 根据差异结果决定刷新策略
+        when {
+            diffResult.changedCells.isEmpty() &&
+                    diffResult.addedRows.isEmpty() &&
+                    diffResult.removedRows.isEmpty() -> {
+                // 没有变化，不需要刷新
+                return
+            }
+
+            diffResult.changedBounds != null &&
+                    shouldUsePartialInvalidate(diffResult.changedBounds) -> {
+                // 局部刷新
+                invalidateRegion(diffResult.changedBounds)
+            }
+
+            else -> {
+                // 全量刷新
+                invalidate()
+            }
         }
     }
 
-    // 保持其余代码不变...
+    // 使用差异结果迁移状态
+    private fun migrateStatesWithDiff(diffResult: Excel2DDiffUtil.DiffResult) {
+        val newEditedCells = mutableMapOf<String, ExcelCell>()
+        val newCustomColors = mutableMapOf<String, Int>()
+
+        // 处理变化的单元格
+        diffResult.changedCells.forEach { diff ->
+            val key = "${diff.row},${diff.col}"
+
+            // 如果是内容变化但保留了编辑状态
+            if (diff.newCell?.isEdited == true || editedCells.containsKey(key)) {
+                diff.newCell?.let { newEditedCells[key] = it }
+            }
+
+            // 保留自定义背景色
+            customBackgroundColors[key]?.let { color ->
+                newCustomColors[key] = color
+            }
+        }
+
+        // 处理未变化的单元格（保留其状态）
+        editedCells.forEach { (key, cell) ->
+            if (!newEditedCells.containsKey(key)) {
+                val (row, col) = key.split(",").map { it.toInt() }
+                if (!diffResult.removedRows.contains(row)) {
+                    // 如果行没有被删除，保留编辑状态
+                    excelInfo?.tableData?.getOrNull(row)?.getOrNull(col)?.let {
+                        newEditedCells[key] = it
+                    }
+                }
+            }
+        }
+
+        customBackgroundColors.forEach { (key, color) ->
+            if (!newCustomColors.containsKey(key)) {
+                val (row, col) = key.split(",").map { it.toInt() }
+                if (!diffResult.removedRows.contains(row)) {
+                    newCustomColors[key] = color
+                }
+            }
+        }
+
+        editedCells.clear()
+        editedCells.putAll(newEditedCells)
+        customBackgroundColors.clear()
+        customBackgroundColors.putAll(newCustomColors)
+    }
+
+    // 判断是否应该使用局部刷新
+    private fun shouldUsePartialInvalidate(bounds: Rect): Boolean {
+        // 如果变化区域小于总面积的30%，使用局部刷新
+        val totalCells = (excelInfo?.rowCount ?: 0) * (excelInfo?.maxCols ?: 0)
+        val changedCells = (bounds.right - bounds.left + 1) * (bounds.bottom - bounds.top + 1)
+        return changedCells.toFloat() / totalCells < 0.3f
+    }
+
+    // 局部刷新
+    private fun invalidateRegion(cellBounds: Rect) {
+        val left = (cellBounds.left * cellWidth * scaleFactor + offsetX * scaleFactor).toInt()
+        val top = (cellBounds.top * cellHeight * scaleFactor + offsetY * scaleFactor).toInt()
+        val right = ((cellBounds.right + 1) * cellWidth * scaleFactor + offsetX * scaleFactor).toInt()
+        val bottom = ((cellBounds.bottom + 1) * cellHeight * scaleFactor + offsetY * scaleFactor).toInt()
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            invalidate(left, top, right, bottom)
+        } else {
+            invalidate()
+        }
+    }
+
+    // 批量更新单元格
+
+    private fun areCellsEqual(old: ExcelCell, new: ExcelCell): Boolean {
+        return old.value == new.value &&
+                old.bgc == new.bgc &&
+                old.cellType == new.cellType &&
+                old.isEdited == new.isEdited
+    }
+
+    private fun validateSelection(info: ExcelInfo) {
+        if (selectedRow >= info.rowCount || selectedCol >= info.maxCols) {
+            selectedRow = -1
+            selectedCol = -1
+        }
+    }
+
+    private fun resetAllStates() {
+        offsetX = 0f
+        offsetY = 0f
+        selectedRow = -1
+        selectedCol = -1
+        editedCells.clear()
+        customBackgroundColors.clear()
+    }
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -231,6 +397,24 @@ class ExcelTableView @JvmOverloads constructor(
 
             canvas.restore()
         }
+    }
+
+    //全局更新
+    fun updateExcelInfoAll(newInfo: ExcelInfo) {
+        //清空编辑状态
+        editedCells.clear()
+
+        excelInfo = newInfo
+        //复原位置
+        offsetX = 0f
+        offsetY = 0f
+        //复原放缩
+        scaleFactor = 1f
+        //复原选中
+        selectedRow = -1
+        selectedCol = -1
+        editedCells.clear()
+        invalidate()
     }
 
     private fun drawMergedCells(canvas: Canvas, info: ExcelInfo) {
@@ -334,8 +518,8 @@ class ExcelTableView @JvmOverloads constructor(
     private fun drawTextCell(canvas: Canvas, rect: RectF, cell: ExcelCell) {
         if (cell.value.isNotEmpty()) {
             val text = when (cell.cellType) {
-                2 -> "AVG: ${cell.value}"
-                3 -> cell.option.firstOrNull()?.toString() ?: cell.value
+//                2 -> "AVG: ${cell.value}"
+//                3 -> cell.option.firstOrNull()?.toString() ?: cell.value
                 else -> cell.value
             }
 
