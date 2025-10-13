@@ -11,8 +11,8 @@ android {
         applicationId = "com.xctech.excelpj"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -61,4 +61,11 @@ dependencies {
 
     // 添加Gson依赖用于JSON解析
     implementation("com.google.code.gson:gson:2.10.1")
+
+    //添加glide仓库
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+
+    //PhotoView
+    implementation ("com.github.chrisbanes:PhotoView:2.3.0")
+
 }

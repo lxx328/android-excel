@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 光标主题 -->
+    <style name="EditTextCursorTheme" parent="ThemeOverlay.MaterialComponents.TextInputEditText">
+        <item name="colorControlActivated">@color/primary_color</item>
+        <item name="colorPrimary">@color/primary_color</item>
+        <item name="colorAccent">@color/primary_color</item>
+        <item name="android:textCursorDrawable">@drawable/cursor_color</item>
+        <!-- 如果还需要设置默认文字颜色和提示颜色，可以取消以下注释 -->
+        <!-- <item name="android:textColor">@color/your_text_color</item> -->
+        <!-- <item name="android:textColorHint">@color/your_hint_color</item> -->
+    </style>
+
+    <style name="ExcelImageDialogTheme" parent="Theme.AppCompat.Light.Dialog">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+    </style>
+</resources>

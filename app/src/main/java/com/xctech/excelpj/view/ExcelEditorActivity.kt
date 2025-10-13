@@ -3,6 +3,7 @@ package com.xctech.excelpj.view
 import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -28,6 +29,7 @@ import com.google.gson.Gson
 import com.xctech.excelpj.R
 import com.xctech.excelpj.databinding.ActivityExcelEditorBinding
 import com.xctech.excelpj.databinding.DialogCellEditorBinding
+import com.xctech.excelpj.dialog.ExcelImageDialog
 import com.xctech.excelpj.viewmodel.ExcelViewModel
 import kotlinx.coroutines.*
 
@@ -84,6 +86,7 @@ class ExcelEditorActivity : AppCompatActivity(), ExcelTableView.OnCellClickListe
         // 使用构造器模式配置ExcelTableView
         val config = ExcelTableView.Builder()
             .showEditedCellBorder(true)
+            .maxRetryCount(3)
             .build()
         binding.excelTableView.applyConfig(config)
 
@@ -337,34 +340,44 @@ class ExcelEditorActivity : AppCompatActivity(), ExcelTableView.OnCellClickListe
             selection?.let {
                 binding.excelTableView.setSelectedCell(it.row, it.col)
 
-                // 显示Dialog
-                showCellEditorDialog()
+                //区分可读图片和编辑框
+                when(it.cell.cellType){
+                    9->{
+                        showCellImageDialog( it.cell.value)
+                    }else->{
 
-                // 更新Dialog中的编辑框内容
-                dialogBinding?.etCellContent?.setText(it.cell.value)
+                        // 显示Dialog
+                        showCellEditorDialog()
 
-                // 设置光标位置到文本末尾
-                dialogBinding?.etCellContent?.setSelection(it.cell.value.length)
+                        // 更新Dialog中的编辑框内容
+                        dialogBinding?.etCellContent?.setText(it.cell.value)
 
-                // 根据单元格类型显示不同的编辑选项
-                when (it.cell.cellType) {
-                    3 -> { // 选项类型
-                        // 如果有预定义选项，设置到预设内容
-                        if (it.cell.option.isNotEmpty()) {
-                            setupDialogOptionsContent(it.cell.option)
+                        // 设置光标位置到文本末尾
+                        dialogBinding?.etCellContent?.setSelection(it.cell.value.length)
+
+                        // 根据单元格类型显示不同的编辑选项
+                        when (it.cell.cellType) {
+                            3 -> { // 选项类型
+                                // 如果有预定义选项，设置到预设内容
+                                if (it.cell.option.isNotEmpty()) {
+                                    setupDialogOptionsContent(it.cell.option)
+                                }
+                            }
+
+                            5, 6 -> { // 图片或签名
+                                // 可以在这里添加特殊处理
+                            }
+
+                            7 -> { // 置灰
+                                dialogBinding?.etCellContent?.isEnabled = false
+                            }
+
+
+                            else -> {
+                                dialogBinding?.etCellContent?.isEnabled = true
+                            }
                         }
-                    }
 
-                    5, 6 -> { // 图片或签名
-                        // 可以在这里添加特殊处理
-                    }
-
-                    7 -> { // 置灰
-                        dialogBinding?.etCellContent?.isEnabled = false
-                    }
-
-                    else -> {
-                        dialogBinding?.etCellContent?.isEnabled = true
                     }
                 }
             }
@@ -528,6 +541,28 @@ class ExcelEditorActivity : AppCompatActivity(), ExcelTableView.OnCellClickListe
         cellEditorDialog?.show()
     }
 
+    private fun showCellImageDialog(imageUrl: String) {
+        try {
+            // 正确解析URI
+            val uri = Uri.parse(imageUrl)
+            Log.d("ImageDialog", "显示图片URI: $uri")
+
+            val dialog = ExcelImageDialog.Builder(this)
+                .setImageUri(uri)
+                .setTitle("图片查看")
+                .setBackgroundColor(Color.WHITE)
+                .setLoadingText("正在加载图片...")
+                .setErrorText("加载失败，点击重试")
+                .enableSave(true)
+                .enableShare(true)
+                .setCancelable(true)
+                .build()
+
+            dialog.show()
+        } catch (e: Exception) {
+            Log.e("ImageDialog", "解析图片URL失败", e)
+        }
+    }
     private fun setupDialogColorContent() {
 
         dialogBinding?.colorPalette?.removeAllViews()

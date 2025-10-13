@@ -46,7 +46,7 @@ data class ExcelMerge(val mainCol:Int, val maxCol:Int, val minRow:Int, val minCo
 /**
  * 注释
  * @param colspan 列跨度
- * @param cellType 单元格类型 单元格类型：1-文本，2-平均值，3-选项，4-范围，5-图片，6-签名，7-置灰，8-搜索项
+ * @param cellType 单元格类型 单元格类型：1-文本，2-平均值，3-选项，4-范围，5-图片，6-签名，7-置灰，8-搜索项,9-只读图片
  * @param mergeId 合并单元格id
  * @param rowspan 行跨度
  * @param merged 是否合并单元格

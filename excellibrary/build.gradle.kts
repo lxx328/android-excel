@@ -70,4 +70,11 @@ dependencies {
 
     // 添加Gson依赖用于JSON解析
     api ("com.google.code.gson:gson:2.10.1")
+
+    //添加glide仓库
+    api ("com.github.bumptech.glide:glide:4.16.0")
+
+    //PhotoView
+    api ("com.github.chrisbanes:PhotoView:2.3.0")
+
 }
