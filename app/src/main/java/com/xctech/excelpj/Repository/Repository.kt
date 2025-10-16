@@ -21,6 +21,7 @@ class ExcelRepository(private val context: Context? = null) {
             2 -> loadFromAssets("excel_a.json")
             3 -> loadFromAssets("excel_data.json")
             4 -> loadFromAssets("excel_v2.json")
+            5 -> loadFromAssets("excel_v3.json")
             else -> mockExcelResponse()
         }
     }
@@ -61,16 +62,20 @@ class ExcelRepository(private val context: Context? = null) {
             qaConfirm = 1,
             confirmDept = "QA Department",
             remarks = "Test form",
-            excelInfo = ExcelInfo(
-                mergedCells = listOf(
-                    ExcelMerge(0, 2, 0, 0, 0, 0, "merge1")
-                ),
-                fileName = "sample.xlsx",
-                mergedCellsCount = 1,
-                tableData = generateMockTableData(),
-                rowCount = 10,
-                maxCols = 5
-            )
+            excelInfo = List(1) {
+                ExcelInfo(
+                    mergedCells = listOf(
+                        ExcelMerge(0, 2, 0, 0, 0, 0, "merge1")
+                    ),
+                    fileName = "sample.xlsx",
+                    mergedCellsCount = 1,
+                    tableData = generateMockTableData(),
+                    rowCount = 10,
+                    maxCols = 5,
+                    sheetName = "Sheet1",
+                    sheetIndex = 0
+                )
+            }
         )
     }
 

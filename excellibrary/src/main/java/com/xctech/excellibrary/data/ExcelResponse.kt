@@ -17,8 +17,7 @@ package com.xctech.excellibrary.data
 data class ExcelResponse(val id:Int, val bgcList: List<String> ?= emptyList(),
                          val formNo:String, val version:String, val validTime:String,
                          val formName:String, val deptClassLine:String, val qaConfirm:Int,
-                         val confirmDept:String?, val remarks:String, val excelInfo:ExcelInfo)
-
+                         val confirmDept:String?, val remarks:String, val excelInfo:List<ExcelInfo>)
 /**
  * 注释
  * @param mergedCells 合并单元格
@@ -27,8 +26,9 @@ data class ExcelResponse(val id:Int, val bgcList: List<String> ?= emptyList(),
  * @param tableData 表格数据
  * @param rowCount 行数
  * @param maxCols 最大列数
+ * @param sheetName sheet名称
  */
-data class ExcelInfo(val mergedCells:List<ExcelMerge>, val fileName:String ,val mergedCellsCount:Int,val tableData :List<List<ExcelCell>> ,val rowCount:Int, val maxCols:Int)
+data class ExcelInfo(val mergedCells:List<ExcelMerge>, val fileName:String ,val mergedCellsCount:Int,val tableData :List<List<ExcelCell>> ,val rowCount:Int, val maxCols:Int,val sheetName: String,val sheetIndex: Int = 0)
 
 /**
  * 注释

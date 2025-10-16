@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
+import android.util.Log
 import android.util.LruCache
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -60,6 +61,13 @@ class ExcelTableView @JvmOverloads constructor(
         fun onImageLoadFailed(row: Int, col: Int, error: Exception?)
     }
 
+    // Sheet状态数据类
+    data class SheetState(
+        val scaleFactor: Float = 1f,
+        val offsetX: Float = 0f,
+        val offsetY: Float = 0f
+    )
+
     // 配置类
     data class Config(
         val showEditedCellBorder: Boolean = false,
@@ -74,7 +82,8 @@ class ExcelTableView @JvmOverloads constructor(
         val imageCornerRadius: Float = 0f,
         val imageLoadingText: String = "Loading...",
         val imageErrorText: String = "Error",
-        val maxRetryCount: Int = DEFAULT_MAX_RETRY_COUNT
+        val maxRetryCount: Int = DEFAULT_MAX_RETRY_COUNT,
+        val isFocus: Boolean = false
     )
 
     enum class ScaleType {
@@ -96,6 +105,7 @@ class ExcelTableView @JvmOverloads constructor(
         private var imageLoadingText = "Loading..."
         private var imageErrorText = "Error"
         private var maxRetryCount = DEFAULT_MAX_RETRY_COUNT
+        private var isFocus = false
 
         fun showEditedCellBorder(show: Boolean) = apply { this.showEditedCellBorder = show }
         fun editedCellBorderColor(color: Int) = apply { this.editedCellBorderColor = color }
@@ -110,6 +120,7 @@ class ExcelTableView @JvmOverloads constructor(
         fun imageLoadingText(text: String) = apply { this.imageLoadingText = text }
         fun imageErrorText(text: String) = apply { this.imageErrorText = text }
         fun maxRetryCount(count: Int) = apply { this.maxRetryCount = count }
+        fun isFocus(focus: Boolean) = apply { this.isFocus = focus }
 
         fun build(): Config {
             return Config(
@@ -125,7 +136,8 @@ class ExcelTableView @JvmOverloads constructor(
                 imageCornerRadius,
                 imageLoadingText,
                 imageErrorText,
-                maxRetryCount
+                maxRetryCount,
+                isFocus
             )
         }
     }
@@ -134,7 +146,7 @@ class ExcelTableView @JvmOverloads constructor(
     private var imageLoadListener: OnImageLoadListener? = null
     private var excelInfo: ExcelInfo? = null
     private var scaleFactor = 1f
-
+    private var formId: Int = -1 // 用于标识不同的表单
     // 图片缓存
     private val imageCache = LruCache<String, Bitmap>(MAX_CACHE_SIZE)
     private val imageLoadingStates = ConcurrentHashMap<String, Boolean>()
@@ -150,6 +162,9 @@ class ExcelTableView @JvmOverloads constructor(
 
     // 编辑过的单元格记录
     private val editedCells = mutableMapOf<String, ExcelCell>()
+
+    // Sheet状态保存（用于保存每个sheet的缩放和滚动位置 使用formId + sheetName作为key
+    private val sheetStates = mutableMapOf<String, SheetState>()
 
     // 配置
     private var config = Config()
@@ -204,6 +219,10 @@ class ExcelTableView @JvmOverloads constructor(
     private var viewportRight = 0
     private var viewportBottom = 0
     private var isScrolling = false
+
+    //记录当前滚动位置放置数据更新后位置变化了
+    private var scrollStartX = 0
+    private var scrollStartY = 0
     private val scrollEndRunnable = Runnable {
         isScrolling = false
         updateVisibleCells()
@@ -247,17 +266,122 @@ class ExcelTableView @JvmOverloads constructor(
         this.imageLoadListener = listener
     }
 
-    fun setExcelInfo(info: ExcelInfo) {
-        this.excelInfo = info
-        offsetX = 0f
-        offsetY = 0f
+    // 设置表单ID，用于区分不同的表单状态
+    fun setFormId(id: Int) {
+        this.formId = id
+    }
 
-        // 清除图片缓存和加载状态
+
+    // 生成Sheet状态的key
+    private fun generateSheetKey(info: ExcelInfo): String {
+        // 同时使用formId、sheetIndex和sheetName，确保唯一性
+        return "${formId}_${info.sheetIndex}_${info.sheetName}"
+    }
+
+    // 为了向后兼容的重载方法
+    private fun generateSheetKey(sheetName: String, sheetIndex: Int = -1): String {
+        return if (sheetIndex >= 0) {
+            "${formId}_${sheetIndex}_${sheetName}"
+        } else {
+            "${formId}_${sheetName}"  // 旧格式，仅用于兼容
+        }
+    }
+
+    // 设置Excel信息并保存当前状态 preserveViewState是否重置视图状态
+    fun setExcelInfo(info: ExcelInfo, saveCurrentState: Boolean = true, preserveViewState: Boolean = false) {
+        // 先保存当前状态
+        if (saveCurrentState && excelInfo != null && formId != -1) {
+            saveCurrentSheetState()
+        }
+
+        // 更新excelInfo
+        this.excelInfo = info
+
+        // 视图状态处理
+        if (preserveViewState) {
+            // 保持当前状态不变
+            Log.d("ExcelTableView", "Preserving current view state for sheet[${info.sheetIndex}]: ${info.sheetName}")
+        } else {
+            // 尝试恢复该sheet自己的状态
+            val key = generateSheetKey(info)
+            val savedState = sheetStates[key]
+
+            // 强制重置：永远使用保存的状态或默认值
+            if (savedState != null) {
+                // 使用保存的状态
+                Log.d("ExcelTableView", "Applying saved state for sheet[${info.sheetIndex}]: ${info.sheetName} " +
+                        "scale: ${savedState.scaleFactor}")
+                scaleFactor = savedState.scaleFactor
+                offsetX = savedState.offsetX
+                offsetY = savedState.offsetY
+            } else {
+                // 没有保存状态，使用默认值
+                Log.d("ExcelTableView", "No saved state for sheet[${info.sheetIndex}]: ${info.sheetName}, " +
+                        "resetting to defaults")
+                scaleFactor = 1f
+                offsetX = 0f
+                offsetY = 0f
+            }
+        }
+
+        // 清除状态
+        selectedRow = -1
+        selectedCol = -1
         clearImageCache()
 
+        // 更新视图
         invalidate()
     }
 
+    fun dumpSheetStates() {
+        Log.d("ExcelTableView", "---- Current Sheet States ----")
+        sheetStates.forEach { (key, state) ->
+            Log.d("ExcelTableView", "Sheet: $key - scale: ${state.scaleFactor}, " +
+                    "offsetX: ${state.offsetX}, offsetY: ${state.offsetY}")
+        }
+        Log.d("ExcelTableView", "----------------------------")
+    }
+    // 保存当前sheet状态
+    fun saveCurrentSheetState() {
+        excelInfo?.let { info ->
+            if (formId != -1) {
+                val key = generateSheetKey(info)
+                val state = SheetState(scaleFactor, offsetX, offsetY)
+                sheetStates[key] = state
+
+                Log.d("ExcelTableView", "Saved state for sheet[${info.sheetIndex}]: ${info.sheetName} - " +
+                        "scale: $scaleFactor, offsetX: $offsetX, offsetY: $offsetY")
+
+                // 调试输出
+                dumpSheetStates()
+            }
+        }
+    }
+
+    // 获取保存的sheet状态
+    fun getSavedSheetState(sheetIndex: Int): SheetState? {
+        excelInfo?.let { info ->
+            val key = generateSheetKey(info)
+            return sheetStates[key]
+        }
+        return null
+
+    }
+
+    // 清空所有保存的sheet状态
+    fun clearAllSheetStates() {
+        sheetStates.clear()
+        Log.d("ExcelTableView", "Cleared all sheet states")
+    }
+
+    // 在formId变化时清除所有相关状态
+    fun clearSheetStatesForForm(formId: Int) {
+        val keysToRemove = sheetStates.keys.filter { it.startsWith("${formId}_") }
+        keysToRemove.forEach { key ->
+            sheetStates.remove(key)
+        }
+        Log.d("ExcelTableView", "Cleared all states for form $formId")
+    }
     fun setScaleFactor(scale: Float) {
         scaleFactor = scale.coerceIn(config.minZoom, config.maxZoom)
         constrainOffsets()
@@ -1208,4 +1332,58 @@ class ExcelTableView @JvmOverloads constructor(
         constrainOffsets()
         invalidate()
     }
+
+    // 获取当前缩放因子
+    fun getCurrentScaleFactor(): Float = scaleFactor
+
+    // 获取当前X偏移
+    fun getCurrentOffsetX(): Float = offsetX
+
+    // 获取当前Y偏移
+    fun getCurrentOffsetY(): Float = offsetY
+
+    //获取是否编辑时请求焦点
+    fun getRequestFocusOnEdit(): Boolean = config.isFocus
+
+    //获取表单ID
+    fun getFormId(): Int = formId
+
+    // 应用视图状态
+    fun applyViewState(scaleFactor: Float, offsetX: Float, offsetY: Float) {
+        this.scaleFactor = scaleFactor
+        this.offsetX = offsetX
+        this.offsetY = offsetY
+        constrainOffsets()
+        invalidate()
+    }
+
+    // 获取当前的ExcelInfo
+    fun getExcelInfo(): ExcelInfo? {
+        return excelInfo
+    }
+
+    // 添加一个临时保存当前视图状态的方法
+    fun saveCurrentViewState(): ViewState {
+        return ViewState(
+            scaleFactor = scaleFactor,
+            offsetX = offsetX,
+            offsetY = offsetY
+        )
+    }
+
+    // 数据结构用于保存视图状态
+    data class ViewState(
+        val scaleFactor: Float,
+        val offsetX: Float,
+        val offsetY: Float
+    )
+
+    fun applyDefaultState() {
+        scaleFactor = 1f
+        offsetX = 0f
+        offsetY = 0f
+        invalidate()
+    }
+
+
 }

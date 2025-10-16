@@ -62,7 +62,7 @@ class ExcelRepository(private val context: Context? = null) {
             qaConfirm = 1,
             confirmDept = "QA Department",
             remarks = "Test form",
-            excelInfo = ExcelInfo(
+            excelInfo =List(1) { ExcelInfo(
                 mergedCells = listOf(
                     ExcelMerge(0, 2, 0, 0, 0, 0, "merge1")
                 ),
@@ -70,8 +70,11 @@ class ExcelRepository(private val context: Context? = null) {
                 mergedCellsCount = 1,
                 tableData = generateMockTableData(),
                 rowCount = 10,
-                maxCols = 5
+                maxCols = 5,
+                sheetName = "Sheet1"
             )
+            }
+
         )
     }
 

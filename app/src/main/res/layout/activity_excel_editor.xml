@@ -56,6 +56,16 @@
                 app:layout_constraintBottom_toBottomOf="parent"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Sheet切换 -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayoutSheets"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:tabMode="scrollable"
+            app:tabGravity="fill"/>
+
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Excel内容区域 -->
@@ -111,6 +121,17 @@
                     app:iconPadding="0dp"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <!-- 重新加载按钮 -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnReload"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="16dp"
+            android:src="@drawable/ic_close"
+            android:contentDescription="重新加载数据"
+            app:tint="@android:color/white"/>
     </FrameLayout>
 
     <!-- 底部编辑栏 - 直接放在这里，不使用include -->
@@ -162,17 +183,6 @@
                 android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 预定义内容选择器 -->
-        <!-- 简化的Spinner，不需要额外图标 -->
-        <Spinner
-            android:id="@+id/spinnerPresets"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/spinner_background"
-            android:dropDownHeight="320dp"
-            android:dropDownVerticalOffset="4dp"
-            android:popupBackground="@drawable/spinner_dropdown_background"/>
     </LinearLayout>
 
     <Button
@@ -183,4 +193,11 @@
         android:layout_margin="16dp"
         android:text="查看编辑"
         android:onClick="onSaveClick"/>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
