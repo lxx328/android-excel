@@ -443,6 +443,40 @@ class ExcelViewModel : ViewModel() {
     }
 
     // 获取所有编辑过的单元格
+    fun getEditedCells(isRestoreState: Boolean ): Map<Int, Map<String, ExcelCell>> {
+        // 创建嵌套Map结构，外层key为sheetIndex，内层为cell位置映射
+        val result = mutableMapOf<Int, MutableMap<String, ExcelCell>>()
+
+        _excelData.value?.let { data ->
+            // 遍历所有sheet
+            data.excelInfo.forEach { sheet ->
+                val sheetIndex = sheet.sheetIndex
+
+                // 遍历sheet中的所有单元格
+                sheet.tableData.forEachIndexed { rowIndex, row ->
+                    row.forEachIndexed { colIndex, cell ->
+                        if (cell.isEdited) {
+                            // 为该sheet创建或获取单元格Map
+                            val cellsInSheet = result.getOrPut(sheetIndex) { mutableMapOf() }
+
+                            // 使用"row,col"格式作为key
+                            val cellKey = "$rowIndex,$colIndex"
+                            cellsInSheet[cellKey] = cell
+
+                            if (isRestoreState) {
+                                // 恢复编辑状态
+                                cell.isEdited = false
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return result
+    }
+
+    // 获取所有编辑过的单元格
     fun getEditedCells(): Map<Int, Map<String, ExcelCell>> {
         // 创建嵌套Map结构，外层key为sheetIndex，内层为cell位置映射
         val result = mutableMapOf<Int, MutableMap<String, ExcelCell>>()

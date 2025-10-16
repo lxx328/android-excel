@@ -58,7 +58,7 @@ data class ExcelMerge(val mainCol:Int, val maxCol:Int, val minRow:Int, val minCo
 data class ExcelCell(val colspan:Int, val cellType:Int, val mergeId: String?, val rowspan:Int,
                      val bgc:String? = null, val colIndex:Int? = null, val rowIndex:Int ? = null,
                      val merged:Boolean, val isMainCell:Boolean, val originalRow:Boolean,
-                     val value:String, val option:List<Any>, val isEdited: Boolean = false){
+                     val value:String, val option:List<Any>, var isEdited: Boolean = false){
     // 创建一个带有新值和编辑状态的副本
     fun copyWithEdit(newValue: String): ExcelCell {
         return this.copy(value = newValue, isEdited = true)
