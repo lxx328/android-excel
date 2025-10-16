@@ -15,6 +15,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.BlendModeColorFilterCompat
 import androidx.core.graphics.BlendModeCompat
+import com.google.android.material.textfield.TextInputEditText
 import com.xctech.excellibrary.R
 import com.xctech.excellibrary.databinding.DialogCellEditorBinding
 
@@ -365,5 +366,10 @@ class CellEditorDialog private constructor(
     // 清空所有符号
     fun clearPresetSymbols() {
         updatePresetSymbols(emptyList())
+    }
+
+    //获取编辑框
+    fun getEditText(): TextInputEditText {
+        return binding.etCellContent
     }
 }

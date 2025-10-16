@@ -94,7 +94,7 @@ class ExcelEditorActivity : AppCompatActivity(), ExcelTableView.OnCellClickListe
         observeViewModel()
 
         // 加载数据
-        val formId = intent.getIntExtra("FORM_ID", 5)
+        val formId = intent.getIntExtra("FORM_ID", 6)
 
         // 设置表单ID用于状态管理
         binding.excelTableView.setFormId(formId)
@@ -943,9 +943,9 @@ class ExcelEditorActivity : AppCompatActivity(), ExcelTableView.OnCellClickListe
 
     private fun setupReloadButton() {
         binding.btnReload.setOnClickListener {
-            // 获取当前和目标表单ID
+            // 获取当前和目标表单IDss
             val currentFormId = binding.excelTableView.getFormId()
-            val targetFormId = intent.getIntExtra("FORM_ID", 5)
+            val targetFormId = intent.getIntExtra("FORM_ID", 6)
 
             // 获取当前sheet信息
             val currentSheet = viewModel.getCurrentSheet()

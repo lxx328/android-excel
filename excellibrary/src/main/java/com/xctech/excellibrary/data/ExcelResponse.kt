@@ -28,7 +28,7 @@ data class ExcelResponse(val id:Int, val bgcList: List<String> ?= emptyList(),
  * @param maxCols 最大列数
  * @param sheetName sheet名称
  */
-data class ExcelInfo(val mergedCells:List<ExcelMerge>, val fileName:String ,val mergedCellsCount:Int,val tableData :List<List<ExcelCell>> ,val rowCount:Int, val maxCols:Int,val sheetName: String,val sheetIndex: Int = 0)
+data class ExcelInfo(val mergedCells:List<ExcelMerge>, val fileName:String ?= null ,val mergedCellsCount:Int,val tableData :List<List<ExcelCell>> ,val rowCount:Int, val maxCols:Int,val sheetName: String,val sheetIndex: Int = 0)
 
 /**
  * 注释

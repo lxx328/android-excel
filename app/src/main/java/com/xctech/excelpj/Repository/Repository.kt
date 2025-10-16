@@ -22,6 +22,7 @@ class ExcelRepository(private val context: Context? = null) {
             3 -> loadFromAssets("excel_data.json")
             4 -> loadFromAssets("excel_v2.json")
             5 -> loadFromAssets("excel_v3.json")
+            6 -> loadFromAssets("excel_v4.json")
             else -> mockExcelResponse()
         }
     }
